@@ -1,0 +1,48 @@
+services:
+  go_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    ports:
+      - ${EVEDEM_PORT}:${EVEDEM_PORT}
+    environment:
+      APP_ENV: ${APP_ENV}
+      EVEDEM_PORT: ${EVEDEM_PORT}
+      EVEDEM_ADMIN_EMAIL: ${EVEDEM_ADMIN_EMAIL}ks
+      EVEDEM_DB_HOST: ${EVEDEM_DB_HOST}
+      EVEDEM_DB_PORT: ${EVEDEM_DB_PORT}
+      EVEDEM_DB_DATABASE: ${EVEDEM_DB_DATABASE}
+      EVEDEM_DB_USERNAME: ${EVEDEM_DB_USERNAME}
+      EVEDEM_DB_PASSWORD: ${EVEDEM_DB_PASSWORD}
+      EVEDEM_DB_SCHEMA: ${EVEDEM_DB_SCHEMA}
+    depends_on:
+      db_pgsql:
+        condition: service_healthy
+    networks:
+      - network
+  db_pgsql:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${EVEDEM_DB_DATABASE}
+      POSTGRES_USER: ${EVEDEM_DB_USERNAME}
+      POSTGRES_PASSWORD: ${EVEDEM_DB_PASSWORD}
+    ports:
+      - ${EVEDEM_DB_PORT}:5432
+    volumes:
+      - orgasphere_db_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${EVEDEM_DB_USERNAME} -d ${EVEDEM_DB_DATABASE}'"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - network
+
+volumes:
+  orgasphere_db_volume:
+networks:
+  network:
